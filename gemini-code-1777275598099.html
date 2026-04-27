@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF Converter</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+  :root {
+    --bg:#0f0f0f;--surface:#1a1a1a;--surface2:#242424;
+    --border:#2e2e2e;--border2:#3a3a3a;
+    --text:#f0ede8;--text2:#9a9690;--text3:#5a5855;
+    --accent:#e8d5a3;--accent2:#c4a96b;
+    --green:#7ecfa0;--red:#e87c7c;--blue:#7ab8e8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'IBM Plex Sans Thai',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:1.5rem}
+  .header{text-align:center;margin-bottom:2rem}
+  .logo{display:inline-flex;align-items:center;gap:12px;margin-bottom:.5rem}
+  .logo-icon{width:38px;height:38px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center}
+  .logo-icon svg{width:20px;height:20px}
+  h1{font-size:1.6rem;font-weight:600;letter-spacing:-.03em}
+  .subtitle{font-size:.8rem;color:var(--text2);margin-top:.4rem}
+  .main{max-width:680px;margin:0 auto}
+  .drop-zone{border:1.5px dashed var(--border2);border-radius:14px;padding:2.5rem 1.5rem;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface);position:relative}
+  .drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent2);background:#1e1c17}
+  .drop-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+  .drop-icon{width:48px;height:48px;margin:0 auto 1rem;background:var(--surface2);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;justify-content:center}
+  .drop-icon svg{width:22px;height:22px;stroke:var(--accent)}
+  .drop-title{font-size:.95rem;font-weight:500;margin-bottom:.3rem}
+  .drop-sub{font-size:.78rem;color:var(--text3)}
+  .badges{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:1.2rem}
+  .badge{font-family:'IBM Plex Mono',monospace;font-size:.65rem;background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:2px 7px;border-radius:4px}
+  .file-list{margin-top:1.2rem;display:flex;flex-direction:column;gap:7px}
+  .file-item{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:10px 14px;display:flex;align-items:center;gap:10px;animation:slideIn .2s ease}
+  @keyframes slideIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+  .ftype{font-family:'IBM Plex Mono',monospace;font-size:.62rem;font-weight:500;padding:2px 6px;border-radius:4px;min-width:40px;text-align:center;text-transform:uppercase}
+  .ti{background:#1a2f1a;color:var(--green);border:1px solid #2d5a2d}
+  .tt{background:#1a1f2f;color:var(--blue);border:1px solid #2d3f5a}
+  .to{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+  .fname{flex:1;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fsize{font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text3)}
+  .fremove{background:none;border:none;color:var(--text3);cursor:pointer;padding:3px;border-radius:3px;display:flex;align-items:center;transition:color .15s}
+  .fremove:hover{color:var(--red)}
+  .fremove svg,.sicon{width:15px;height:15px;flex-shrink:0}
+  .sicon.pending{color:var(--text3)}.sicon.converting{color:var(--accent2)}.sicon.done{color:var(--green)}.sicon.error{color:var(--red)}
+  .options-bar{margin-top:1.2rem;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:.9rem 1.1rem;display:flex;gap:1.2rem;align-items:center;flex-wrap:wrap}
+  .og{display:flex;align-items:center;gap:7px}
+  .ol{font-size:.78rem;color:var(--text2)}
+  select{background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:'IBM Plex Sans Thai',sans-serif;font-size:.78rem;padding:5px 22px 5px 9px;border-radius:5px;cursor:pointer;outline:none;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235a5855' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 7px center}
+  .tw{display:flex;align-items:center;gap:7px;cursor:pointer}
+  .toggle{width:32px;height:17px;background:var(--border2);border-radius:9px;position:relative;transition:background .2s;cursor:pointer}
+  .toggle.on{background:var(--accent2)}
+  .toggle::after{content:'';position:absolute;left:2px;top:2px;width:13px;height:13px;background:white;border-radius:50%;transition:left .2s}
+  .toggle.on::after{left:17px}
+  .actions{margin-top:1.2rem;display:flex;gap:9px}
+  .btn{padding:9px 18px;border-radius:7px;font-family:'IBM Plex Sans Thai',sans-serif;font-size:.85rem;font-weight:500;cursor:pointer;transition:all .15s;border:none;display:flex;align-items:center;gap:6px}
+  .btn svg{width:14px;height:14px}
+  .btn-primary{background:var(--accent);color:#1a1500;flex:1}
+  .btn-primary:hover{background:#f0e0b0}
+  .btn-primary:disabled{opacity:.4;cursor:not-allowed}
+  .btn-secondary{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+  .btn-secondary:hover{color:var(--text)}
+  .progress-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:.9rem}
+  .progress-fill{height:100%;background:var(--accent2);border-radius:2px;transition:width .3s ease;width:0%}
+  .empty-state{text-align:center;padding:1.5rem 0;color:var(--text3);font-size:.85rem}
+  .results{margin-top:1.5rem;display:none;flex-direction:column;gap:10px}
+  .results.show{display:flex}
+  .results-header{font-size:.75rem;color:var(--text2);font-weight:500;letter-spacing:.06em;text-transform:uppercase}
+  .result-card{background:var(--surface);border:1px solid var(--border);border-radius:11px;overflow:hidden;animation:slideIn .25s ease}
+  .result-toolbar{display:flex;align-items:center;gap:8px;padding:9px 13px;background:var(--surface2);border-bottom:1px solid var(--border)}
+  .result-name{flex:1;font-size:.78rem;font-family:'IBM Plex Mono',monospace;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .btn-action{border:none;border-radius:6px;padding:7px 14px;font-family:'IBM Plex Sans Thai',sans-serif;font-size:.75rem;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;flex-shrink:0;transition:opacity .15s}
+  .btn-action:active{opacity:.7}
+  .btn-action svg{width:12px;height:12px}
+  .btn-view{background:var(--accent);color:#1a1500}
+  .btn-save{background:#1a2535;color:var(--blue);border:1px solid #2d3f5a}
+  .ios-hint{font-size:.72rem;color:var(--text3);padding:7px 13px;background:#161a1f;border-top:1px solid var(--border);display:flex;align-items:center;gap:6px}
+  .ios-hint svg{width:13px;height:13px;stroke:var(--accent2);flex-shrink:0}
+
+  /* inline viewer */
+  .pdf-viewer{display:none;width:100%;height:70vh;border:none;border-top:1px solid var(--border);background:#fff}
+  .pdf-viewer.open{display:block}
+  .viewer-bar{display:none;align-items:center;gap:8px;padding:8px 13px;background:#111;border-top:1px solid #222}
+  .viewer-bar.open{display:flex}
+  .viewer-bar-name{flex:1;font-size:.75rem;font-family:'IBM Plex Mono',monospace;color:var(--text2)}
+  .btn-close{background:none;border:1px solid var(--border);color:var(--text2);border-radius:5px;padding:5px 11px;font-family:'IBM Plex Sans Thai',sans-serif;font-size:.75rem;cursor:pointer}
+  .btn-close:hover{color:var(--text)}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#1a1500" stroke-width="2.2" stroke-linecap="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14,2 14,8 20,8"/>
+        <line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="11" y2="17"/>
+      </svg>
+    </div>
+    <h1>PDF Converter</h1>
+  </div>
+  <p class="subtitle">ทำงานในเบราว์เซอร์ — ไม่ส่งข้อมูลออก</p>
+</div>
+
+<div class="main">
+  <div class="drop-zone" id="dropZone">
+    <input type="file" id="fileInput" multiple accept="image/*,.txt,.md,.html,.htm">
+    <div class="drop-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
+        <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+      </svg>
+    </div>
+    <p class="drop-title">ลากไฟล์มาวางที่นี่ หรือแตะเพื่อเลือก</p>
+    <p class="drop-sub">รองรับหลายไฟล์พร้อมกัน</p>
+    <div class="badges">
+      <span class="badge">JPG</span><span class="badge">PNG</span><span class="badge">GIF</span>
+      <span class="badge">WEBP</span><span class="badge">BMP</span><span class="badge">TXT</span>
+      <span class="badge">MD</span><span class="badge">HTML</span>
+    </div>
+  </div>
+
+  <div class="file-list" id="fileList">
+    <div class="empty-state">ยังไม่มีไฟล์ที่เลือก</div>
+  </div>
+
+  <div class="options-bar" id="optionsBar" style="display:none">
+    <div class="og">
+      <span class="ol">ขนาดหน้า</span>
+      <select id="pageSize"><option value="a4">A4</option><option value="letter">Letter</option><option value="a3">A3</option></select>
+    </div>
+    <div class="og">
+      <span class="ol">แนวหน้า</span>
+      <select id="orientation"><option value="portrait">แนวตั้ง</option><option value="landscape">แนวนอน</option></select>
+    </div>
+    <div class="og tw" onclick="toggleMerge()">
+      <div class="toggle" id="mergeToggle"></div>
+      <span class="ol">รวมเป็นไฟล์เดียว</span>
+    </div>
+  </div>
+
+  <div class="progress-bar" id="progressBar" style="display:none">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+
+  <div class="actions" id="actions" style="display:none">
+    <button class="btn btn-secondary" onclick="clearAll()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      ล้าง
+    </button>
+    <button class="btn btn-primary" id="convertBtn" onclick="startConvert()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="9" y1="13" x2="15" y2="13"/></svg>
+      แปลงเป็น PDF
+    </button>
+  </div>
+
+  <div class="results" id="results">
+    <p class="results-header">ผลลัพธ์</p>
+    <div id="resultList"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const { jsPDF } = window.jspdf || {};
+let files = [], mergeMode = false;
+const resultStore = {};
+
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const fileListEl = document.getElementById('fileList');
+const optionsBar = document.getElementById('optionsBar');
+const actionsEl = document.getElementById('actions');
+const progressBar = document.getElementById('progressBar');
+const progressFill = document.getElementById('progressFill');
+const mergeToggle = document.getElementById('mergeToggle');
+const resultsEl = document.getElementById('results');
+const resultList = document.getElementById('resultList');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); addFiles([...e.dataTransfer.files]); });
+fileInput.addEventListener('change', () => { addFiles([...fileInput.files]); fileInput.value = ''; });
+
+function addFiles(newFiles) {
+  newFiles.forEach(f => {
+    if (!files.find(x => x.file.name===f.name && x.file.size===f.size))
+      files.push({ file:f, status:'pending', id:Math.random() });
+  });
+  renderList();
+}
+
+function getType(name) {
+  const e = name.split('.').pop().toLowerCase();
+  if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(e)) return 'image';
+  if (['txt','md','markdown'].includes(e)) return 'text';
+  if (['html','htm'].includes(e)) return 'html';
+  return 'other';
+}
+function tc(t) { return t==='image'?'ti':t==='text'||t==='html'?'tt':'to'; }
+function fmtSize(b) { return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(1)+' MB'; }
+function si(s) {
+  const m = {
+    pending:`<svg class="sicon pending" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+    converting:`<svg class="sicon converting" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>`,
+    done:`<svg class="sicon done" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
+    error:`<svg class="sicon error" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`
+  };
+  return m[s]||m.pending;
+}
+
+function renderList() {
+  if (!files.length) {
+    fileListEl.innerHTML = '<div class="empty-state">ยังไม่มีไฟล์ที่เลือก</div>';
+    optionsBar.style.display='none'; actionsEl.style.display='none'; return;
+  }
+  optionsBar.style.display='flex'; actionsEl.style.display='flex';
+  fileListEl.innerHTML = files.map((f,i) => {
+    const t=getType(f.file.name), ext=f.file.name.split('.').pop().toUpperCase();
+    return `<div class="file-item">${si(f.status)}<span class="ftype ${tc(t)}">${ext}</span><span class="fname">${f.file.name}</span><span class="fsize">${fmtSize(f.file.size)}</span><button class="fremove" onclick="removeFile(${i})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>`;
+  }).join('');
+}
+
+function removeFile(i) { files.splice(i,1); renderList(); }
+
+function clearAll() {
+  files=[];
+  Object.keys(resultStore).forEach(k=>delete resultStore[k]);
+  renderList();
+  progressBar.style.display='none';
+  resultsEl.classList.remove('show');
+  resultList.innerHTML='';
+}
+
+function toggleMerge() { mergeMode=!mergeMode; mergeToggle.classList.toggle('on',mergeMode); }
+
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+}
+
+function readDataURL(file) {
+  return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(file);});
+}
+function readText(file) {
+  return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsText(file,'UTF-8');});
+}
+function getDims(ps,ori) {
+  const s={a4:[210,297],letter:[215.9,279.4],a3:[297,420]};
+  let [w,h]=s[ps]||s.a4;
+  if(ori==='landscape')[w,h]=[h,w];
+  return [w,h];
+}
+
+async function imageToDoc(file,ps,ori) {
+  const du=await readDataURL(file);
+  const [pw,ph]=getDims(ps,ori);
+  const doc=new jsPDF({orientation:ori,unit:'mm',format:ps});
+  await new Promise((res,rej)=>{
+    const img=new Image();
+    img.onload=()=>{
+      const r=img.width/img.height,m=10;
+      let iw=pw-m*2,ih=iw/r;
+      if(ih>ph-m*2){ih=ph-m*2;iw=ih*r;}
+      const fmt=file.name.toLowerCase().endsWith('png')?'PNG':'JPEG';
+      doc.addImage(du,fmt,(pw-iw)/2,(ph-ih)/2,iw,ih);
+      res();
+    };
+    img.onerror=rej;img.src=du;
+  });
+  return doc;
+}
+
+async function textToDoc(file,ps,ori) {
+  const text=await readText(file);
+  const [pw,ph]=getDims(ps,ori);
+  const doc=new jsPDF({orientation:ori,unit:'mm',format:ps});
+  const m=15,lh=6,lines=doc.splitTextToSize(text,pw-m*2);
+  let y=m+5;doc.setFontSize(10);doc.setTextColor(40,40,40);
+  lines.forEach(l=>{if(y>ph-m){doc.addPage();y=m+5;}doc.text(l,m,y);y+=lh;});
+  return doc;
+}
+
+async function htmlToDoc(file,ps,ori) {
+  const text=await readText(file);
+  const stripped=text.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+  const [pw,ph]=getDims(ps,ori);
+  const doc=new jsPDF({orientation:ori,unit:'mm',format:ps});
+  const m=15,lh=6,lines=doc.splitTextToSize(stripped,pw-m*2);
+  let y=m+5;doc.setFontSize(10);doc.setTextColor(40,40,40);
+  lines.forEach(l=>{if(y>ph-m){doc.addPage();y=m+5;}doc.text(l,m,y);y+=lh;});
+  return doc;
+}
+
+// -----------------------------------------------------
+// ส่วนที่แก้ไขเพื่อใช้ Blob แทน Base64 Data URI
+// -----------------------------------------------------
+
+function getPdfBlob(doc) {
+  return doc.output('blob');
+}
+
+function addResult(name, blob) {
+  const url = URL.createObjectURL(blob);
+  resultStore[name] = { blob, url }; 
+  
+  resultsEl.classList.add('show');
+  const ios = isIOS();
+
+  const card = document.createElement('div');
+  card.className = 'result-card';
+  card.id = 'card-'+name;
+
+  card.innerHTML = `
+    <div class="result-toolbar">
+      <span class="result-name">${name}</span>
+      <button class="btn-action btn-save" onclick="saveFile('${name}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        ${ios?'Share':'ดาวน์โหลด'}
+      </button>
+      <button class="btn-action btn-view" onclick="toggleViewer('${name}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        ดูตัวอย่าง
+      </button>
+    </div>
+    <div class="viewer-bar" id="vbar-${name}">
+      <span class="viewer-bar-name">${name}</span>
+      <button class="btn-close" onclick="toggleViewer('${name}')">ปิด</button>
+    </div>
+    <iframe class="pdf-viewer" id="viewer-${name}" src="about:blank"></iframe>
+    ${ios?`<div class="ios-hint"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>กด Share แล้วเลือก "Save to Files" เพื่อบันทึกลง iPad</div>`:''}
+  `;
+  resultList.appendChild(card);
+}
+
+function toggleViewer(name) {
+  const frame = document.getElementById('viewer-'+name);
+  const vbar  = document.getElementById('vbar-'+name);
+  const isOpen = frame.classList.contains('open');
+  if (isOpen) {
+    frame.classList.remove('open');
+    vbar.classList.remove('open');
+    frame.src = 'about:blank';
+  } else {
+    frame.src = resultStore[name].url; 
+    frame.classList.add('open');
+    vbar.classList.add('open');
+    setTimeout(()=>frame.scrollIntoView({behavior:'smooth',block:'start'}),100);
+  }
+}
+
+async function saveFile(name) {
+  const { blob, url } = resultStore[name];
+
+  if (navigator.canShare) {
+    const file = new File([blob], name, {type:'application/pdf'});
+    if (navigator.canShare({files:[file]})) {
+      try { await navigator.share({files:[file],title:name}); return; } catch(e){}
+    }
+  }
+  
+  const a = document.createElement('a');
+  a.href = url; 
+  a.download = name;
+  document.body.appendChild(a); 
+  a.click();
+  document.body.removeChild(a);
+}
+
+async function startConvert() {
+  if (!jsPDF) { alert('กำลังโหลด library...'); return; }
+  const ps  = document.getElementById('pageSize').value;
+  const ori = document.getElementById('orientation').value;
+  const btn = document.getElementById('convertBtn');
+  btn.disabled = true;
+  progressBar.style.display='block';
+  Object.keys(resultStore).forEach(k=>delete resultStore[k]);
+  resultsEl.classList.remove('show');
+  resultList.innerHTML='';
+
+  let mergedDoc = null;
+  if (mergeMode) { mergedDoc=new jsPDF({orientation:ori,unit:'mm',format:ps}); mergedDoc.deletePage(1); }
+
+  for (let i=0;i<files.length;i++) {
+    const f=files[i];
+    const type=getType(f.file.name);
+    f.status='converting'; renderList();
+    progressFill.style.width=((i/files.length)*100)+'%';
+
+    try {
+      let doc;
+      if (type==='image') doc=await imageToDoc(f.file,ps,ori);
+      else if (type==='text') doc=await textToDoc(f.file,ps,ori);
+      else if (type==='html') doc=await htmlToDoc(f.file,ps,ori);
+      else throw new Error('ไม่รองรับไฟล์ประเภทนี้');
+
+      if (mergeMode) {
+        const n=doc.internal.getNumberOfPages();
+        for(let p=1;p<=n;p++){
+          mergedDoc.addPage(getDims(ps,ori).slice().reverse(),ori);
+          mergedDoc.internal.pages[mergedDoc.internal.getNumberOfPages()]=doc.internal.pages[p];
+        }
+      } else {
+        const safeName=f.file.name.replace(/\.[^.]+$/,'')+'.pdf';
+        addResult(safeName, getPdfBlob(doc));
+      }
+      f.status='done';
+    } catch(err) {
+      f.status='error';
+      console.error(err);
+    }
+    renderList();
+  }
+
+  if (mergeMode && mergedDoc && mergedDoc.internal.getNumberOfPages()>0) {
+    addResult('merged-output.pdf', getPdfBlob(mergedDoc));
+  }
+
+  progressFill.style.width='100%';
+  btn.disabled=false;
+  setTimeout(()=>{progressFill.style.width='0%';},2000);
+}
+</script>
+</body>
+</html>
